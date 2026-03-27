@@ -6,7 +6,7 @@
   <title>Missing Lot Search Tool</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-
+ 
     body {
       background: #1A1A2A;
       color: #E0E0EE;
