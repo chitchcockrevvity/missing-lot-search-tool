@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Missing Lot Search Tool</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #1E1E2E;
+      color: white;
+      font-family: Helvetica, Arial, sans-serif;
+      padding: 16px;
+      min-height: 100vh;
+    }
+
+    h1 { text-align: center; font-size: 22px; margin-bottom: 6px; }
+
+    .hint {
+      text-align: center;
+      font-size: 11px;
+      color: #AAAAAA;
+      margin-bottom: 10px;
+    }
+
+    .lock-bar {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 10px;
+    }
+
+    .lock-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      border-radius: 20px;
+      border: 2px solid #555;
+      background: #2A2A3E;
+      color: #AAAAAA;
+      font-size: 11px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+      user-select: none;
+    }
+
+    .lock-btn:hover { border-color: #888; color: #CCC; }
+
+    .lock-btn.locked {
+      border-color: #8B3A3A;
+      background: #3A1E1E;
+      color: #F5D0D0;
+    }
+
+    .lock-btn .lock-icon { font-size: 13px; }
+
+    .search-wrap {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .search-wrap input {
+      width: 340px;
+      padding: 9px 14px;
+      border-radius: 8px;
+      border: 2px solid #4A90D9;
+      background: #12121E;
+      color: white;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .search-wrap input:focus {
+      border-color: #A0522D;
+      box-shadow: 0 0 8px #A0522D66;
+    }
+
+    .search-wrap input::placeholder { color: #666; }
+
+    .search-clear {
+      background: #444;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 9px 13px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .search-clear:hover { background: #666; }
+
+    .search-count {
+      font-size: 11px;
+      color: #AAAAAA;
+      min-width: 80px;
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .top-bar button {
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 16px;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .share-btn { background: #27AE60; }
+    .share-btn:hover { background: #1e8449; }
+
+    .btn-panel {
+      border: 2px solid #444;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 16px;
+      transition: border-color 0.3s;
+    }
+
+    .btn-panel.locked { border-color: #8B3A3A; }
+
+    .btn-panel-title {
+      font-size: 12px;
+      color: #AAAAAA;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .btn-grid {
+      display: grid;
+      grid-template-columns: repeat(9, 1fr);
+      gap: 5px;
+    }
+
+    .stim-btn {
+      color: #F0F0F0;
+      border: none;
+      border-radius: 5px;
+      padding: 6px 2px;
+      font-size: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: filter 0.15s, transform 0.1s, box-shadow 0.1s, opacity 0.2s;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .stim-btn:hover { filter: brightness(1.2); }
+
+    .stim-btn.active {
+      transform: scale(0.95);
+      box-shadow: 0 0 10px 2px rgba(255,255,255,0.25);
+      filter: brightness(1.25);
+      outline: 2px solid rgba(255,255,255,0.7);
+    }
+
+    .stim-btn.search-match {
+      outline: 2px solid #C8A800;
+      box-shadow: 0 0 8px 2px #C8A80066;
+      filter: brightness(1.2);
+    }
+
+    .stim-btn.search-dim {
+      opacity: 0.22;
+      filter: brightness(0.55);
+    }
+
+    .grp-1  { background: #2E4DB8; }
+    .grp-2  { background: #5238B0; }
+    .grp-3  { background: #7D2E96; }
+    .grp-4  { background: #96285E; }
+    .grp-5  { background: #A83030; }
+    .grp-6  { background: #A84428; }
+    .grp-7  { background: #B06010; }
+    .grp-8  { background: #C47A00; }
+    .grp-9  { background: #A89000; }
+    .grp-10 { background: #5A7A20; }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 10px;
+      color: #CCCCCC;
+    }
+
+    .legend-swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+
+    .box-panel {
+      border: 2px solid #444;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 16px;
+      transition: border-color 0.3s;
+    }
+
+    .box-panel.locked { border-color: #8B3A3A; }
+
+    .box-panel-title {
+      font-size: 12px;
+      color: #AAAAAA;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .box-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .stim-box {
+      background: #D0E8FF;
+      color: #1E1E2E;
+      border: 3px solid #4A90D9;
+      border-radius: 8px;
+      height: 90px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+      user-select: none;
+      text-align: center;
+      padding: 6px;
+    }
+
+    .stim-box:hover { border-color: #357ABD; box-shadow: 0 0 6px #4A90D966; }
+    .stim-box.is-locked { cursor: default; }
+    .stim-box.is-locked:hover { border-color: #4A90D9; box-shadow: none; }
+
+    .stim-box.highlighted {
+      background: #8B3A3A;
+      color: #F5D0D0;
+      border-color: #A04040;
+      box-shadow: 0 0 14px #8B3A3A99;
+    }
+
+    .stim-box.group-highlight {
+      background: #FFF9C4;
+      color: #5a4a00;
+      border-color: #F9E04B;
+      box-shadow: 0 0 12px #F9E04BAA;
+    }
+
+    .stim-box.highlighted.group-highlight {
+      background: #8B3A3A;
+      color: #F5D0D0;
+      border-color: #A04040;
+      box-shadow: 0 0 14px #8B3A3A99;
+    }
+
+    .stim-box.empty-box {
+      background: #2A2A3E;
+      color: #666;
+      border-color: #444;
+      font-style: italic;
+    }
+
+    .stim-box.empty-box:hover { border-color: #666; }
+    .stim-box.empty-box.is-locked:hover { border-color: #444; }
+    .stim-box.empty-box.highlighted { background: #8B3A3A; color: #F5D0D0; border-color: #A04040; }
+    .stim-box.empty-box.group-highlight { background: #FFF9C4; color: #5a4a00; border-color: #F9E04B; }
+
+    .stim-box.tissue-box {
+      background: #3D2B1F;
+      color: #E8A87C;
+      border-color: #A0522D;
+    }
+
+    .stim-box.tissue-box:hover { border-color: #CD853F; box-shadow: 0 0 6px #A0522D66; }
+    .stim-box.tissue-box.is-locked:hover { border-color: #A0522D; box-shadow: none; }
+    .stim-box.tissue-box.highlighted { background: #8B3A3A; color: #F5D0D0; border-color: #A04040; box-shadow: 0 0 14px #8B3A3A99; }
+    .stim-box.tissue-box.group-highlight { background: #FFF9C4; color: #5a4a00; border-color: #F9E04B; }
+
+    .status-bar {
+      background: #12121E;
+      border-radius: 6px;
+      padding: 8px 14px;
+      font-size: 11px;
+      color: #AAAAAA;
+      min-height: 32px;
+      margin-bottom: 12px;
+    }
+
+    .bottom-bar {
+      display: flex;
+      justify-content: center;
+      padding-bottom: 8px;
+    }
+
+    .clear-btn-small {
+      background: transparent;
+      color: #6A3030;
+      border: 1px solid #6A3030;
+      border-radius: 6px;
+      padding: 4px 12px;
+      font-size: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+      letter-spacing: 0.5px;
+    }
+
+    .clear-btn-small:hover { background: #6A3030; color: #F5D0D0; border-color: #8B3A3A; }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(60px);
+      background: #27AE60;
+      color: white;
+      padding: 10px 22px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: bold;
+      opacity: 0;
+      transition: opacity 0.3s, transform 0.3s;
+      z-index: 200;
+      pointer-events: none;
+    }
+
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #00000088;
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.visible { display: flex; }
+
+    .modal {
+      background: #2A2A3E;
+      border: 2px solid #4A90D9;
+      border-radius: 10px;
+      padding: 24px;
+      width: 320px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .modal h2 { font-size: 15px; color: white; }
+
+    .modal input {
+      background: #1E1E2E;
+      border: 1px solid #4A90D9;
+      border-radius: 5px;
+      color: white;
+      padding: 8px 10px;
+      font-size: 13px;
+      outline: none;
+      width: 100%;
+    }
+
+    .modal input:focus { border-color: #A0522D; }
+
+    .modal-buttons {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .modal-buttons button {
+      padding: 7px 18px;
+      border: none;
+      border-radius: 5px;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .btn-confirm { background: #8B3A3A; color: #F5D0D0; }
+    .btn-cancel  { background: #444; color: white; }
+    .btn-confirm:hover { background: #A04040; }
+    .btn-cancel:hover  { background: #555; }
+
+    .confirm-modal {
+      background: #2A2A3E;
+      border: 2px solid #8B3A3A;
+      border-radius: 10px;
+      padding: 24px;
+      width: 300px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      text-align: center;
+    }
+
+    .confirm-modal h2 { font-size: 15px; color: #F5D0D0; }
+
+    .confirm-modal p {
+      font-size: 12px;
+      color: #AAAAAA;
+      line-height: 1.5;
+    }
+
+    .confirm-modal-buttons {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .confirm-modal-buttons button {
+      padding: 8px 24px;
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .confirm-yes    { background: #8B3A3A; color: #F5D0D0; }
+    .confirm-yes:hover { background: #A04040; }
+    .confirm-cancel-btn { background: #444; color: white; }
+    .confirm-cancel-btn:hover { background: #555; }
+
+    .share-modal {
+      background: #2A2A3E;
+      border: 2px solid #27AE60;
+      border-radius: 10px;
+      padding: 24px;
+      width: 480px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .share-modal h2 { font-size: 15px; color: white; }
+    .share-modal p  { font-size: 11px; color: #AAAAAA; }
+
+    .share-modal textarea {
+      background: #1E1E2E;
+      border: 1px solid #27AE60;
+      border-radius: 5px;
+      color: #AAAAAA;
+      padding: 8px 10px;
+      font-size: 10px;
+      outline: none;
+      width: 100%;
+      height: 80px;
+      resize: none;
+      word-break: break-all;
+    }
+
+    .share-modal .copy-btn {
+      background: #27AE60;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      padding: 8px 16px;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+      align-self: flex-end;
+    }
+
+    .share-modal .copy-btn:hover { background: #1e8449; }
+  </style>
+</head>
+<body>
+
+  <h1>Missing Lot Search Tool</h1>
+  <p class="hint" id="hintText">
+    Left-click to activate &nbsp;|&nbsp;
+    Double-click to rename &nbsp;|&nbsp;
+    Click Stim Boxes to toggle mapping &nbsp;|&nbsp;
+    Changes save automatically
+  </p>
+
+  <div class="lock-bar">
+    <button class="lock-btn" id="lockBtn">
+      <span class="lock-icon">🔓</span>
+      <span class="lock-label">Unlocked — click to lock</span>
+    </button>
+  </div>
+
+  <div class="search-wrap">
+    <input type="text" id="searchInput" placeholder="🔍  Search buttons by name..." autocomplete="off" />
+    <button class="search-clear" id="searchClear">✕ Clear</button>
+    <span class="search-count" id="searchCount"></span>
+  </div>
+
+  <div class="top-bar">
+    <button class="share-btn" id="shareBtn">🔗 Get Shareable Link</button>
+  </div>
+
+  <div class="btn-panel" id="btnPanel">
+    <div class="btn-panel-title">Lot Categories</div>
+    <div class="legend" id="legend"></div>
+    <div class="btn-grid" id="btnGrid"></div>
+  </div>
+
+  <div class="box-panel" id="boxPanel">
+    <div class="box-panel-title">Stim Boxes</div>
+    <div class="box-grid" id="boxGrid"></div>
+  </div>
+
+  <div class="status-bar" id="statusBar">No button selected.</div>
+
+  <div class="toast" id="toast"></div>
+
+  <div class="bottom-bar">
+    <button class="clear-btn-small" id="clearBtn">🗑 Clear All Mappings</button>
+  </div>
+
+  <!-- Rename Modal -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <h2 id="modalTitle">Rename Button</h2>
+      <input type="text" id="modalInput" maxlength="30" />
+      <div class="modal-buttons">
+        <button class="btn-cancel"  id="modalCancel">Cancel</button>
+        <button class="btn-confirm" id="modalConfirm">Rename</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Clear Confirm Modal -->
+  <div class="modal-overlay" id="clearOverlay">
+    <div class="confirm-modal">
+      <h2>🗑 Clear All Mappings?</h2>
+      <p>This will reset all button names and remove all box mappings.<br/>This cannot be undone.</p>
+      <div class="confirm-modal-buttons">
+        <button class="confirm-cancel-btn" id="clearCancel">Cancel</button>
+        <button class="confirm-yes"        id="clearYes">Yes, Clear All</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Share Modal -->
+  <div class="modal-overlay" id="shareOverlay">
+    <div class="share-modal">
+      <h2>🔗 Shareable Link</h2>
+      <p>Copy this link and send it to anyone — it contains all your button names and mappings.</p>
+      <textarea id="shareUrl" readonly></textarea>
+      <div class="modal-buttons">
+        <button class="btn-cancel" id="shareClose">Close</button>
+        <button class="copy-btn"   id="copyBtn">📋 Copy Link</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const NUM_BUTTONS = 54;
+    const BOX_LABELS  = [
+      "STIM BOX 1", "STIM BOX 2", "STIM BOX 3", "STIM BOX 4",
+      "STIM BOX 5", "STIM BOX 6", "STIM BOX 7", "STIM BOX 8",
+      "STIM BOX 9", "STIM BOX 10", "CL BOX 1 (HUMAN)", "CL BOX 2 (ANIMAL)",
+      "TISSUE TYPE", "EMPTY", "OVERFLOW", "NEW HIRE PRACTICE LOTS"
+    ];
+    const NUM_BOXES   = BOX_LABELS.length;
+    const STORAGE_KEY = "missingLotSearchTool";
+
+    const GROUPS = [
+      { from: 1,  to: 5,  cls: "grp-1",  color: "#2E4DB8", stimBox: 0 },
+      { from: 6,  to: 9,  cls: "grp-2",  color: "#5238B0", stimBox: 1 },
+      { from: 10, to: 12, cls: "grp-3",  color: "#7D2E96", stimBox: 2 },
+      { from: 13, to: 19, cls: "grp-4",  color: "#96285E", stimBox: 3 },
+      { from: 20, to: 21, cls: "grp-5",  color: "#A83030", stimBox: 4 },
+      { from: 22, to: 29, cls: "grp-6",  color: "#A84428", stimBox: 5 },
+      { from: 30, to: 37, cls: "grp-7",  color: "#B06010", stimBox: 6 },
+      { from: 38, to: 40, cls: "grp-8",  color: "#C47A00", stimBox: 7 },
+      { from: 41, to: 48, cls: "grp-9",  color: "#A89000", stimBox: 8 },
+      { from: 49, to: 54, cls: "grp-10", color: "#5A7A20", stimBox: 9 },
+    ];
+
+    function getGroup(i) {
+      const n = i + 1;
+      for (const g of GROUPS) if (n >= g.from && n <= g.to) return g;
+      return GROUPS[0];
+    }
+
+    // ── State ──────────────────────────────────────────────────────────────────
+    let buttonNames    = Array.from({ length: NUM_BUTTONS }, (_, i) => `Btn ${i + 1}`);
+    let buttonMappings = Array.from({ length: NUM_BUTTONS }, () => []);
+    let activeButton   = null;
+    let renameTarget   = null;
+    let isLocked       = true; // defaults to locked on open
+
+    // ── Persistence ────────────────────────────────────────────────────────────
+    function loadFromURL() {
+      try {
+        const d = new URLSearchParams(window.location.search).get("d");
+        if (d) {
+          const p = JSON.parse(atob(d));
+          if (p.names)    buttonNames    = p.names;
+          if (p.mappings) buttonMappings = p.mappings.map(m => m || []);
+          return true;
+        }
+      } catch(e) {}
+      return false;
+    }
+
+    function loadFromStorage() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const p = JSON.parse(raw);
+          if (p.names)    buttonNames    = p.names;
+          if (p.mappings) buttonMappings = p.mappings.map(m => m || []);
+        }
+      } catch(e) {}
+    }
+
+    function saveToStorage() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          names: buttonNames, mappings: buttonMappings
+        }));
+      } catch(e) {}
+    }
+
+    function generateShareURL() {
+      const data = btoa(JSON.stringify({ names: buttonNames, mappings: buttonMappings }));
+      return `${window.location.href.split("?")[0]}?d=${data}`;
+    }
+
+    if (!loadFromURL()) loadFromStorage();
+
+    // ── DOM refs ───────────────────────────────────────────────────────────────
+    const lockBtn  = document.getElementById("lockBtn");
+    const btnPanel = document.getElementById("btnPanel");
+    const boxPanel = document.getElementById("boxPanel");
+    const hintText = document.getElementById("hintText");
+
+    // ── Lock ───────────────────────────────────────────────────────────────────
+    function applyLockState() {
+      lockBtn.classList.toggle("locked", isLocked);
+      lockBtn.querySelector(".lock-icon").textContent  = isLocked ? "🔒" : "🔓";
+      lockBtn.querySelector(".lock-label").textContent = isLocked
+        ? "Locked — click to unlock"
+        : "Unlocked — click to lock";
+      btnPanel.classList.toggle("locked", isLocked);
+      boxPanel.classList.toggle("locked", isLocked);
+      hintText.innerHTML = isLocked
+        ? "🔒 Locked — click any button to view its box correlations &nbsp;|&nbsp; Unlock to make changes"
+        : "Left-click to activate &nbsp;|&nbsp; Double-click to rename &nbsp;|&nbsp; Click Stim Boxes to toggle mapping &nbsp;|&nbsp; Changes save automatically";
+      document.getElementById("statusBar").textContent = isLocked
+        ? "🔒 Locked — click any button to view its correlated boxes."
+        : "🔓 Unlocked — you can now edit button names and mappings.";
+    }
+
+    // Apply locked state immediately on page load
+    applyLockState();
+
+    lockBtn.addEventListener("click", () => {
+      isLocked = !isLocked;
+      applyLockState();
+      if (typeof stimBoxes !== "undefined") {
+        stimBoxes.forEach(b => b.classList.toggle("is-locked", isLocked));
+      }
+      if (!isLocked && activeButton !== null) {
+        stimBtns[activeButton].classList.remove("active");
+        activeButton = null;
+        clearBoxes();
+      }
+      showToast(isLocked ? "🔒 Locked!" : "🔓 Unlocked!");
+    });
+
+    // ── Legend ─────────────────────────────────────────────────────────────────
+    const legendEl = document.getElementById("legend");
+    GROUPS.forEach(g => {
+      const item = document.createElement("div");
+      item.className = "legend-item";
+      item.innerHTML = `
+        <div class="legend-swatch" style="background:${g.color}"></div>
+        <span style="color:${g.color};font-weight:bold;">&#9632;</span>
+        <span>Stim Box ${g.stimBox + 1}</span>
+      `;
+      legendEl.appendChild(item);
+    });
+
+    // ── Build Buttons ──────────────────────────────────────────────────────────
+    const btnGrid  = document.getElementById("btnGrid");
+    const stimBtns = [];
+
+    for (let i = 0; i < NUM_BUTTONS; i++) {
+      const btn = document.createElement("button");
+      btn.className   = `stim-btn ${getGroup(i).cls}`;
+      btn.textContent = buttonNames[i];
+      btn.title       = "Double-click to rename";
+      btn.addEventListener("click",    ()  => isLocked ? onButtonClickViewOnly(i) : onButtonClick(i));
+      btn.addEventListener("dblclick", (e) => {
+        e.stopPropagation();
+        if (isLocked) { setStatus("🔒 Locked — unlock to rename buttons."); return; }
+        openRenameModal(i);
+      });
+      btnGrid.appendChild(btn);
+      stimBtns.push(btn);
+    }
+
+    // ── Build Stim Boxes ───────────────────────────────────────────────────────
+    const boxGrid   = document.getElementById("boxGrid");
+    const stimBoxes = [];
+
+    for (let i = 0; i < NUM_BOXES; i++) {
+      const box = document.createElement("div");
+      box.className   = "stim-box";
+      box.textContent = BOX_LABELS[i];
+      if (BOX_LABELS[i] === "EMPTY")       box.classList.add("empty-box");
+      if (BOX_LABELS[i] === "TISSUE TYPE") box.classList.add("tissue-box");
+      if (isLocked) box.classList.add("is-locked");
+      box.addEventListener("click", () => { if (!isLocked) toggleBoxMapping(i); });
+      boxGrid.appendChild(box);
+      stimBoxes.push(box);
+    }
+
+    // ── View-Only Click (locked) ───────────────────────────────────────────────
+    function onButtonClickViewOnly(idx) {
+      if (activeButton !== null) stimBtns[activeButton].classList.remove("active");
+      if (activeButton === idx) {
+        activeButton = null;
+        clearBoxes();
+        setStatus("🔒 Locked — click any button to view its correlated boxes.");
+        return;
+      }
+      activeButton = idx;
+      stimBtns[idx].classList.add("active");
+      refreshBoxes();
+      const g = getGroup(idx);
+      setStatus(`🔒 Viewing: ${buttonNames[idx]}  |  Auto-highlight: Stim Box ${g.stimBox + 1}  |  Mapped to: ${getMappedNames(idx)}`);
+    }
+
+    // ── Full Edit Click (unlocked) ─────────────────────────────────────────────
+    function onButtonClick(idx) {
+      if (activeButton !== null) stimBtns[activeButton].classList.remove("active");
+      if (activeButton === idx) {
+        activeButton = null;
+        clearBoxes();
+        setStatus("No button selected.");
+        return;
+      }
+      activeButton = idx;
+      stimBtns[idx].classList.add("active");
+      refreshBoxes();
+      const g = getGroup(idx);
+      setStatus(`Active: ${buttonNames[idx]}  |  Auto-highlight: Stim Box ${g.stimBox + 1}  |  Mapped to: ${getMappedNames(idx)}  |  Click Stim Boxes to toggle`);
+    }
+
+    // ── Boxes ──────────────────────────────────────────────────────────────────
+    function refreshBoxes() {
+      stimBoxes.forEach(b => b.classList.remove("highlighted", "group-highlight"));
+      if (activeButton === null) return;
+      const g = getGroup(activeButton);
+      stimBoxes[g.stimBox].classList.add("group-highlight");
+      buttonMappings[activeButton].forEach(i => stimBoxes[i].classList.add("highlighted"));
+    }
+
+    function clearBoxes() {
+      stimBoxes.forEach(b => b.classList.remove("highlighted", "group-highlight"));
+    }
+
+    function toggleBoxMapping(boxIdx) {
+      if (activeButton === null) { setStatus("⚠  Select a button first, then click a Stim Box to map it."); return; }
+      const mapping = buttonMappings[activeButton];
+      const pos     = mapping.indexOf(boxIdx);
+      if (pos > -1) mapping.splice(pos, 1);
+      else          mapping.push(boxIdx);
+      refreshBoxes();
+      const g = getGroup(activeButton);
+      setStatus(`Active: ${buttonNames[activeButton]}  |  Auto-highlight: Stim Box ${g.stimBox + 1}  |  Mapped to: ${getMappedNames(activeButton)}`);
+      saveToStorage();
+    }
+
+    function getMappedNames(idx) {
+      const s = [...buttonMappings[idx]].sort((a, b) => a - b);
+      return s.length > 0 ? s.map(b => BOX_LABELS[b]).join(", ") : "none";
+    }
+
+    function setStatus(msg) { document.getElementById("statusBar").textContent = msg; }
+
+    // ── Search ─────────────────────────────────────────────────────────────────
+    const searchInput = document.getElementById("searchInput");
+    const searchClear = document.getElementById("searchClear");
+    const searchCount = document.getElementById("searchCount");
+
+    searchInput.addEventListener("input", runSearch);
+    searchClear.addEventListener("click", () => { searchInput.value = ""; runSearch(); searchInput.focus(); });
+
+    function runSearch() {
+      const q = searchInput.value.trim().toLowerCase();
+      if (!q) { stimBtns.forEach(b => b.classList.remove("search-match", "search-dim")); searchCount.textContent = ""; return; }
+      let n = 0;
+      stimBtns.forEach((btn, i) => {
+        const match = buttonNames[i].toLowerCase().includes(q);
+        btn.classList.remove("search-match", "search-dim");
+        if (match) { btn.classList.add("search-match"); n++; }
+        else        btn.classList.add("search-dim");
+      });
+      searchCount.textContent = n === 0 ? "No matches" : `${n} match${n !== 1 ? "es" : ""}`;
+    }
+
+    // ── Rename Modal ───────────────────────────────────────────────────────────
+    const modalOverlay = document.getElementById("modalOverlay");
+    const modalInput   = document.getElementById("modalInput");
+    const modalTitle   = document.getElementById("modalTitle");
+
+    function openRenameModal(idx) {
+      renameTarget = idx;
+      modalTitle.textContent = `Rename "${buttonNames[idx]}"`;
+      modalInput.value = buttonNames[idx];
+      modalOverlay.classList.add("visible");
+      setTimeout(() => { modalInput.focus(); modalInput.select(); }, 50);
+    }
+
+    function closeModal() { modalOverlay.classList.remove("visible"); renameTarget = null; }
+
+    function confirmRename() {
+      const name = modalInput.value.trim();
+      if (name && renameTarget !== null) {
+        buttonNames[renameTarget] = name;
+        stimBtns[renameTarget].textContent = name;
+        if (activeButton === renameTarget) setStatus(`Active: ${name}  |  Renamed successfully.`);
+        saveToStorage();
+        showToast("Button renamed and saved!");
+        runSearch();
+      }
+      closeModal();
+    }
+
+    document.getElementById("modalConfirm").addEventListener("click", confirmRename);
+    document.getElementById("modalCancel").addEventListener("click",  closeModal);
+    modalInput.addEventListener("keydown", (e) => { if (e.key === "Enter") confirmRename(); if (e.key === "Escape") closeModal(); });
+    modalOverlay.addEventListener("click", (e) => { if (e.target === modalOverlay) closeModal(); });
+
+    // ── Clear All Modal ────────────────────────────────────────────────────────
+    const clearOverlay = document.getElementById("clearOverlay");
+
+    document.getElementById("clearBtn").addEventListener("click", () => {
+      if (isLocked) { setStatus("🔒 Locked — unlock to clear mappings."); showToast("🔒 Unlock to make changes!"); return; }
+      clearOverlay.classList.add("visible");
+    });
+
+    document.getElementById("clearCancel").addEventListener("click", () => clearOverlay.classList.remove("visible"));
+
+    document.getElementById("clearYes").addEventListener("click", () => {
+      buttonNames    = Array.from({ length: NUM_BUTTONS }, (_, i) => `Btn ${i + 1}`);
+      buttonMappings = Array.from({ length: NUM_BUTTONS }, () => []);
+      activeButton   = null;
+      stimBtns.forEach((b, i) => { b.textContent = buttonNames[i]; b.classList.remove("active", "search-match", "search-dim"); });
+      clearBoxes();
+      saveToStorage();
+      searchInput.value = "";
+      searchCount.textContent = "";
+      clearOverlay.classList.remove("visible");
+      setStatus("All data cleared.");
+      showToast("All mappings cleared!");
+    });
+
+    clearOverlay.addEventListener("click", (e) => { if (e.target === clearOverlay) clearOverlay.classList.remove("visible"); });
+
+    // ── Share Modal ────────────────────────────────────────────────────────────
+    const shareOverlay = document.getElementById("shareOverlay");
+
+    document.getElementById("shareBtn").addEventListener("click", () => {
+      document.getElementById("shareUrl").value = generateShareURL();
+      shareOverlay.classList.add("visible");
+    });
+
+    document.getElementById("shareClose").addEventListener("click", () => shareOverlay.classList.remove("visible"));
+
+    document.getElementById("copyBtn").addEventListener("click", () => {
+      const ta = document.getElementById("shareUrl");
+      ta.select();
+      navigator.clipboard.writeText(ta.value).then(() => {
+        showToast("Link copied to clipboard!");
+        shareOverlay.classList.remove("visible");
+      }).catch(() => {
+        document.execCommand("copy");
+        showToast("Link copied!");
+        shareOverlay.classList.remove("visible");
+      });
+    });
+
+    shareOverlay.addEventListener("click", (e) => { if (e.target === shareOverlay) shareOverlay.classList.remove("visible"); });
+
+    // ── Toast ──────────────────────────────────────────────────────────────────
+    function showToast(msg) {
+      const toast = document.getElementById("toast");
+      toast.textContent = msg;
+      toast.classList.add("show");
+      setTimeout(() => toast.classList.remove("show"), 2500);
+    }
+
+  </script>
+</body>
+</html>
